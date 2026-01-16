@@ -107,6 +107,42 @@ export type Database = {
         }
         Relationships: []
       }
+      documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string
+          id: string
+          original_name: string
+          storage_path: string
+          user_id: string
+          user_note: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          original_name: string
+          storage_path: string
+          user_id: string
+          user_note?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          original_name?: string
+          storage_path?: string
+          user_id?: string
+          user_note?: string | null
+        }
+        Relationships: []
+      }
       prayers: {
         Row: {
           created_at: string | null
