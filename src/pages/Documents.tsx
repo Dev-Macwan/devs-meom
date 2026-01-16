@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FileText, Upload, Download, Trash2, File, Image, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +43,8 @@ const ALLOWED_TYPES = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const Documents = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,12 @@ const Documents = () => {
   const [userNote, setUserNote] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deletePath, setDeletePath] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (user) {
@@ -255,6 +263,20 @@ const Documents = () => {
     });
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-warmth flex items-center justify-center">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-primary text-xl font-display"
+        >
+          Loading... 💕
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!user) {
     return null;
   }
@@ -323,6 +345,7 @@ const Documents = () => {
                   onClick={handleUpload}
                   disabled={uploading}
                   className="w-full"
+                  type="button"
                 >
                   {uploading ? (
                     <>
@@ -395,6 +418,7 @@ const Documents = () => {
                         size="icon"
                         onClick={() => handleDownload(doc)}
                         className="h-9 w-9"
+                        type="button"
                       >
                         <Download className="w-4 h-4" />
                       </Button>
@@ -406,6 +430,7 @@ const Documents = () => {
                           setDeletePath(doc.storage_path);
                         }}
                         className="h-9 w-9 text-destructive hover:text-destructive"
+                        type="button"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

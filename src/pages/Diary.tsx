@@ -1,16 +1,44 @@
 import { motion } from "framer-motion";
 import { Book, Sparkles, Sun, Moon, ListTodo } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import Navigation from "@/components/Navigation";
 import PanicButton from "@/components/PanicButton";
 import SoftParticles from "@/components/SoftParticles";
 
 const Diary = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
   const sections = [
     { icon: Book, title: "My Diary", desc: "Write freely, meri jaan", color: "primary" },
     { icon: Sun, title: "Best Part of the Day", desc: "Aaj ka sabse acha moment", color: "gold" },
     { icon: Moon, title: "Worst Part of the Day", desc: "Jo bura laga, share kar", color: "muted" },
     { icon: ListTodo, title: "Tomorrow's Tasks", desc: "Kal kya karna hai", color: "accent" },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-warmth flex items-center justify-center">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-primary text-xl font-display"
+        >
+          Loading... 💕
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-warmth relative pb-24">
@@ -31,6 +59,7 @@ const Diary = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
+              type="button"
               className="w-full p-5 bg-card/70 backdrop-blur-sm rounded-2xl shadow-soft border border-border/30 text-left hover:shadow-warm transition-all"
             >
               <div className="flex items-center gap-4">

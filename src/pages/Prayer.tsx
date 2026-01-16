@@ -1,10 +1,38 @@
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import Navigation from "@/components/Navigation";
 import PanicButton from "@/components/PanicButton";
 import DiyaGlow from "@/components/DiyaGlow";
 
 const Prayer = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-warmth flex items-center justify-center">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-primary text-xl font-display"
+        >
+          Loading... 💕
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   return (
     <div className="min-h-screen bg-spiritual relative pb-24">
       <PanicButton />
@@ -26,7 +54,7 @@ const Prayer = () => {
             placeholder="Apni prarthana yahan likho... 🙏"
             className="w-full h-40 bg-transparent resize-none focus:outline-none text-foreground placeholder:text-muted-foreground"
           />
-          <button className="mt-4 px-6 py-3 bg-gold text-gold-foreground rounded-xl font-medium shadow-glow">
+          <button type="button" className="mt-4 px-6 py-3 bg-gold text-gold-foreground rounded-xl font-medium shadow-glow">
             Save Prayer 🙏
           </button>
         </motion.div>
