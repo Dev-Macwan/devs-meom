@@ -1,11 +1,37 @@
 import { motion } from "framer-motion";
 import { MessageCircle, Send } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import Navigation from "@/components/Navigation";
 import PanicButton from "@/components/PanicButton";
-import { useState } from "react";
 
 const Chat = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-warmth flex items-center justify-center">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-primary text-xl font-display"
+        >
+          Loading... 💕
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-warmth relative pb-24">
@@ -38,7 +64,7 @@ const Chat = () => {
                 placeholder="Mummy se baat kar..."
                 className="flex-1 px-4 py-3 bg-background/50 rounded-xl border border-border/50 focus:outline-none focus:border-primary"
               />
-              <button className="p-3 bg-primary text-primary-foreground rounded-xl">
+              <button type="button" className="p-3 bg-primary text-primary-foreground rounded-xl">
                 <Send className="w-5 h-5" />
               </button>
             </div>

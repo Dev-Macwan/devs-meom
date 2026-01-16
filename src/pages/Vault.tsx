@@ -1,9 +1,37 @@
 import { motion } from "framer-motion";
 import { Image, Plus, Lock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import Navigation from "@/components/Navigation";
 import PanicButton from "@/components/PanicButton";
 
 const Vault = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-warmth flex items-center justify-center">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-primary text-xl font-display"
+        >
+          Loading... 💕
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   return (
     <div className="min-h-screen bg-warmth relative pb-24">
       <PanicButton />
@@ -19,6 +47,7 @@ const Vault = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full p-8 border-2 border-dashed border-primary/30 rounded-2xl bg-card/30 hover:bg-card/50 transition-colors flex flex-col items-center gap-3"
+          type="button"
         >
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
             <Plus className="w-8 h-8 text-primary" />

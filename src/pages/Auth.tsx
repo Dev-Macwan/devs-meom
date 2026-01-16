@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Eye, EyeOff, Calendar, User, Mail, Lock, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +15,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
 
   // Form states
   const [email, setEmail] = useState("");
@@ -24,9 +24,29 @@ const Auth = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [fullName, setFullName] = useState("");
 
-  // Redirect if already logged in
+  // Redirect if already logged in - use useEffect instead of synchronous redirect
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/");
+    }
+  }, [user, authLoading, navigate]);
+
+  // Show nothing while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-warmth flex items-center justify-center">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-primary text-xl font-display"
+        >
+          Loading... 💕
+        </motion.div>
+      </div>
+    );
+  }
+
   if (user) {
-    navigate("/");
     return null;
   }
 
