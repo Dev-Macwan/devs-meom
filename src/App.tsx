@@ -10,6 +10,7 @@ import Diary from "./pages/Diary";
 import Prayer from "./pages/Prayer";
 import Chat from "./pages/Chat";
 import Vault from "./pages/Vault";
+import Documents from "./pages/Documents";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/prayer" element={<Prayer />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/vault" element={<Vault />} />
+            <Route path="/documents" element={<Documents />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

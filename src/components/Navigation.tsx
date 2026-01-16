@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Home, Book, Heart, MessageCircle, Image, LogOut } from "lucide-react";
+import { Home, Book, Heart, MessageCircle, Image, FileText, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -11,9 +11,10 @@ const Navigation = () => {
   const navItems = [
     { icon: Home, label: "Home", path: "/" },
     { icon: Book, label: "Diary", path: "/diary" },
-    { icon: Heart, label: "Umiya Maa", path: "/prayer" },
+    { icon: Heart, label: "Maa", path: "/prayer" },
     { icon: MessageCircle, label: "Mummy", path: "/chat" },
-    { icon: Image, label: "Vault", path: "/vault" },
+    { icon: Image, label: "Photos", path: "/vault" },
+    { icon: FileText, label: "Docs", path: "/documents" },
   ];
 
   const handleSignOut = async () => {
