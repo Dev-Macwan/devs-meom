@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Camera, Heart, Loader2 } from "lucide-react";
+import { Camera, Heart, Loader2, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,17 +19,19 @@ const PhotoSection = () => {
   useEffect(() => {
     const loadPhotoUrls = async () => {
       if (profile?.mother_photo_url) {
-        const { data } = await supabase.storage
+        const { data, error } = await supabase.storage
           .from('profile_photos')
           .createSignedUrl(profile.mother_photo_url, 3600);
         if (data) setMotherPhotoUrl(data.signedUrl);
+        if (error) console.error('Error loading mother photo:', error);
       }
       
       if (profile?.umiya_maa_photo_url) {
-        const { data } = await supabase.storage
+        const { data, error } = await supabase.storage
           .from('profile_photos')
           .createSignedUrl(profile.umiya_maa_photo_url, 3600);
         if (data) setUmiyaMaaPhotoUrl(data.signedUrl);
+        if (error) console.error('Error loading umiya photo:', error);
       }
     };
     
@@ -39,7 +41,7 @@ const PhotoSection = () => {
   }, [profile]);
 
   const uploadPhoto = async (file: File, type: 'mother' | 'umiya') => {
-    if (!user || !profile) {
+    if (!user) {
       toast.error('Please login first');
       return;
     }
@@ -63,18 +65,28 @@ const PhotoSection = () => {
       const fileName = `${type}_${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
+      console.log('Uploading to path:', filePath);
+
       // Delete old photo if exists
-      const oldPath = type === 'mother' ? profile.mother_photo_url : profile.umiya_maa_photo_url;
-      if (oldPath) {
-        await supabase.storage.from('profile_photos').remove([oldPath]);
+      if (profile) {
+        const oldPath = type === 'mother' ? profile.mother_photo_url : profile.umiya_maa_photo_url;
+        if (oldPath) {
+          console.log('Deleting old photo:', oldPath);
+          await supabase.storage.from('profile_photos').remove([oldPath]);
+        }
       }
 
       // Upload new photo
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('profile_photos')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+      
+      console.log('Upload successful:', uploadData);
 
       // Update profile
       const updateData = type === 'mother' 
@@ -86,12 +98,19 @@ const PhotoSection = () => {
         .update(updateData)
         .eq('user_id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
 
       // Get signed URL for display
-      const { data: signedData } = await supabase.storage
+      const { data: signedData, error: signedError } = await supabase.storage
         .from('profile_photos')
         .createSignedUrl(filePath, 3600);
+
+      if (signedError) {
+        console.error('Signed URL error:', signedError);
+      }
 
       if (signedData) {
         if (type === 'mother') {
@@ -105,9 +124,9 @@ const PhotoSection = () => {
       await refreshProfile();
       
       toast.success(type === 'mother' ? 'Mummy ki photo save ho gayi! 💕' : 'Umiya Maa ki photo save ho gayi! 🙏');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading photo:', error);
-      toast.error('Photo upload failed');
+      toast.error(error?.message || 'Photo upload failed');
     } finally {
       setUploading(false);
     }
@@ -115,14 +134,26 @@ const PhotoSection = () => {
 
   const handleMotherFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    console.log('Mother file selected:', file?.name);
     if (file) uploadPhoto(file, 'mother');
     if (motherInputRef.current) motherInputRef.current.value = '';
   };
 
   const handleUmiyaFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    console.log('Umiya file selected:', file?.name);
     if (file) uploadPhoto(file, 'umiya');
     if (umiyaInputRef.current) umiyaInputRef.current.value = '';
+  };
+
+  const triggerMotherUpload = () => {
+    console.log('Triggering mother upload');
+    motherInputRef.current?.click();
+  };
+
+  const triggerUmiyaUpload = () => {
+    console.log('Triggering umiya upload');
+    umiyaInputRef.current?.click();
   };
 
   return (
@@ -138,6 +169,7 @@ const PhotoSection = () => {
         onChange={handleMotherFileSelect}
         accept="image/jpeg,image/png,image/gif,image/webp"
         className="hidden"
+        id="mother-photo-input"
       />
       <input
         type="file"
@@ -145,15 +177,22 @@ const PhotoSection = () => {
         onChange={handleUmiyaFileSelect}
         accept="image/jpeg,image/png,image/gif,image/webp"
         className="hidden"
+        id="umiya-photo-input"
       />
 
       {/* Mother's Photo */}
       <div className="text-center">
         <motion.div
           whileHover={{ scale: 1.05 }}
-          className="relative w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/30 shadow-soft border-4 border-primary/30"
+          whileTap={{ scale: 0.95 }}
+          onClick={triggerMotherUpload}
+          className="relative w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/30 shadow-soft border-4 border-primary/30 cursor-pointer"
         >
-          {motherPhotoUrl ? (
+          {uploadingMother ? (
+            <div className="w-full h-full flex items-center justify-center bg-primary/10">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : motherPhotoUrl ? (
             <img 
               src={motherPhotoUrl} 
               alt="Mummy" 
@@ -164,29 +203,44 @@ const PhotoSection = () => {
               <Heart className="w-8 h-8 text-primary/50" />
             </div>
           )}
-          <button 
-            type="button"
-            onClick={() => motherInputRef.current?.click()}
-            disabled={uploadingMother}
-            className="absolute bottom-0 right-0 p-1.5 bg-primary/80 rounded-full text-primary-foreground hover:bg-primary transition-colors disabled:opacity-50"
-          >
+          
+          {/* Camera overlay - always visible when not uploading */}
+          {!uploadingMother && (
+            <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center group">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          )}
+          
+          {/* Camera button badge */}
+          <div className="absolute bottom-0 right-0 p-1.5 bg-primary rounded-full text-primary-foreground shadow-md">
             {uploadingMother ? (
               <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
+            ) : motherPhotoUrl ? (
               <Camera className="w-3 h-3" />
+            ) : (
+              <Plus className="w-3 h-3" />
             )}
-          </button>
+          </div>
         </motion.div>
         <p className="mt-2 text-sm font-medium text-foreground/80">Mummy</p>
+        <p className="text-xs text-muted-foreground">Tap to add</p>
       </div>
 
       {/* Umiya Maa Photo */}
       <div className="text-center">
         <motion.div
           whileHover={{ scale: 1.05 }}
-          className="relative w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gold/20 to-amber-200/30 shadow-soft border-4 border-gold/30"
+          whileTap={{ scale: 0.95 }}
+          onClick={triggerUmiyaUpload}
+          className="relative w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gold/20 to-amber-200/30 shadow-soft border-4 border-gold/30 cursor-pointer"
         >
-          {umiyaMaaPhotoUrl ? (
+          {uploadingUmiya ? (
+            <div className="w-full h-full flex items-center justify-center bg-gold/10">
+              <Loader2 className="w-8 h-8 text-gold animate-spin" />
+            </div>
+          ) : umiyaMaaPhotoUrl ? (
             <img 
               src={umiyaMaaPhotoUrl} 
               alt="Umiya Maa" 
@@ -197,20 +251,29 @@ const PhotoSection = () => {
               <span className="text-2xl">🙏</span>
             </div>
           )}
-          <button 
-            type="button"
-            onClick={() => umiyaInputRef.current?.click()}
-            disabled={uploadingUmiya}
-            className="absolute bottom-0 right-0 p-1.5 bg-gold/80 rounded-full text-white hover:bg-gold transition-colors disabled:opacity-50"
-          >
+          
+          {/* Camera overlay - always visible when not uploading */}
+          {!uploadingUmiya && (
+            <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center group">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          )}
+          
+          {/* Camera button badge */}
+          <div className="absolute bottom-0 right-0 p-1.5 bg-gold rounded-full text-white shadow-md">
             {uploadingUmiya ? (
               <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
+            ) : umiyaMaaPhotoUrl ? (
               <Camera className="w-3 h-3" />
+            ) : (
+              <Plus className="w-3 h-3" />
             )}
-          </button>
+          </div>
         </motion.div>
         <p className="mt-2 text-sm font-medium text-foreground/80">Umiya Maa</p>
+        <p className="text-xs text-muted-foreground">Tap to add</p>
       </div>
     </motion.div>
   );
