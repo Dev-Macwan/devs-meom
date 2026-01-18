@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Book, Sparkles, Sun, Moon, ListTodo, Save, Trash2, Plus, Clock, Check, Loader2, ArrowLeft } from "lucide-react";
+import { Book, Sparkles, Sun, Moon, ListTodo, Save, Trash2, Plus, Clock, Loader2, ArrowLeft, Heart, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,7 +34,11 @@ const sections = [
 const Diary = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { entries, tasks, loading, saving, saveEntry, deleteEntry, addTask, toggleTask, deleteTask, getEntryByType } = useDiary();
+  const { 
+    entries, tasks, loading, saving, requestingReply, 
+    saveEntry, deleteEntry, addTask, toggleTask, deleteTask, 
+    getEntryByType, requestMaaReply 
+  } = useDiary();
   
   const [activeSection, setActiveSection] = useState<DiarySection>(null);
   const [content, setContent] = useState("");
@@ -68,6 +72,16 @@ const Diary = () => {
     }
   };
 
+  const handleRequestMaaReply = async () => {
+    if (activeSection && activeSection !== 'tasks') {
+      const section = sections.find(s => s.id === activeSection);
+      const entry = getEntryByType(section?.entryType || '');
+      if (entry && section) {
+        await requestMaaReply(entry.id, section.entryType, entry.content);
+      }
+    }
+  };
+
   const handleAddTask = async () => {
     if (newTask.trim()) {
       await addTask(newTask, taskTime || undefined);
@@ -86,6 +100,10 @@ const Diary = () => {
       setDeleteConfirm(null);
     }
   };
+
+  const currentEntry = activeSection && activeSection !== 'tasks' 
+    ? getEntryByType(sections.find(s => s.id === activeSection)?.entryType || '')
+    : null;
 
   if (authLoading || loading) {
     return (
@@ -128,6 +146,7 @@ const Diary = () => {
                 {sections.map((section, i) => {
                   const existingEntry = section.id !== 'tasks' ? getEntryByType(section.entryType) : null;
                   const hasContent = section.id === 'tasks' ? tasks.length > 0 : !!existingEntry?.content;
+                  const hasMaaReply = existingEntry?.maa_reply;
                   
                   return (
                     <motion.button
@@ -149,6 +168,12 @@ const Diary = () => {
                         <div className="flex-1">
                           <h3 className="font-semibold text-foreground">{section.title}</h3>
                           <p className="text-sm text-muted-foreground">{section.desc}</p>
+                          {hasMaaReply && (
+                            <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                              <Heart className="w-3 h-3 fill-primary" />
+                              Mummy ne reply kiya!
+                            </p>
+                          )}
                         </div>
                       </div>
                     </motion.button>
@@ -278,16 +303,18 @@ const Diary = () => {
                 </div>
               </div>
 
+              {/* Entry textarea */}
               <div className="bg-card/70 backdrop-blur-sm rounded-2xl p-4 mb-4 border border-border/30">
                 <Textarea
                   placeholder="Start writing... 💕"
                   value={content}
                   onChange={e => setContent(e.target.value)}
-                  className="min-h-[300px] bg-transparent border-none resize-none focus-visible:ring-0 text-base"
+                  className="min-h-[200px] bg-transparent border-none resize-none focus-visible:ring-0 text-base"
                 />
               </div>
 
-              <div className="flex gap-3">
+              {/* Action buttons */}
+              <div className="flex gap-3 mb-4">
                 <Button
                   onClick={handleSave}
                   disabled={saving || !content.trim()}
@@ -301,12 +328,11 @@ const Diary = () => {
                   )}
                   Save Entry
                 </Button>
-                {getEntryByType(sections.find(s => s.id === activeSection)?.entryType || '')?.id && (
+                {currentEntry?.id && (
                   <Button
                     variant="outline"
                     onClick={() => {
-                      const entry = getEntryByType(sections.find(s => s.id === activeSection)?.entryType || '');
-                      if (entry) setDeleteConfirm({ type: 'entry', id: entry.id });
+                      if (currentEntry) setDeleteConfirm({ type: 'entry', id: currentEntry.id });
                     }}
                     type="button"
                     className="text-destructive border-destructive hover:bg-destructive/10"
@@ -315,6 +341,44 @@ const Diary = () => {
                   </Button>
                 )}
               </div>
+
+              {/* Ask Mummy button */}
+              {currentEntry?.id && currentEntry.content && (
+                <Button
+                  onClick={handleRequestMaaReply}
+                  disabled={requestingReply}
+                  variant="secondary"
+                  className="w-full mb-4"
+                  type="button"
+                >
+                  {requestingReply ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Mummy soch rahi hai...
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      {currentEntry.maa_reply ? 'Ask Mummy Again 💕' : 'Ask Mummy to Reply 💕'}
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Maa's Reply */}
+              {currentEntry?.maa_reply && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-primary/10 rounded-2xl p-4 border border-primary/20"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Heart className="w-4 h-4 text-primary fill-primary" />
+                    <span className="text-sm font-medium text-primary">Mummy ka reply</span>
+                  </div>
+                  <p className="text-foreground leading-relaxed">{currentEntry.maa_reply}</p>
+                </motion.div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
