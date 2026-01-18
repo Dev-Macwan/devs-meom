@@ -27,11 +27,12 @@ interface Task {
 }
 
 export function useDiary() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [requestingReply, setRequestingReply] = useState(false);
 
   const fetchEntries = useCallback(async () => {
     if (!user) return;
@@ -121,6 +122,50 @@ export function useDiary() {
       toast.error('Failed to save entry');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const requestMaaReply = async (entryId: string, entryType: string, content: string) => {
+    if (!user) {
+      toast.error('Please login first');
+      return;
+    }
+
+    setRequestingReply(true);
+    try {
+      // Call edge function for AI reply
+      const { data: aiResponse, error: aiError } = await supabase.functions.invoke('maa-diary-reply', {
+        body: {
+          entryType,
+          content,
+          nickname: profile?.nickname || 'beta',
+        },
+      });
+
+      if (aiError) throw aiError;
+
+      const reply = aiResponse.reply;
+
+      // Save reply to database
+      const { error: updateError } = await supabase
+        .from('diary_entries')
+        .update({ 
+          maa_reply: reply, 
+          maa_reply_requested: true,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', entryId)
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      toast.success('Mummy ne reply kiya! 💕');
+      await fetchEntries();
+    } catch (error) {
+      console.error('Error getting Maa reply:', error);
+      toast.error('Mummy abhi busy hai, thoda wait karo');
+    } finally {
+      setRequestingReply(false);
     }
   };
 
@@ -224,12 +269,14 @@ export function useDiary() {
     tasks,
     loading,
     saving,
+    requestingReply,
     saveEntry,
     deleteEntry,
     addTask,
     toggleTask,
     deleteTask,
     getEntryByType,
+    requestMaaReply,
     refreshEntries: fetchEntries,
   };
 }
